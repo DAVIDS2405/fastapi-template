@@ -10,10 +10,10 @@ ALGORITHM = os.environ.get("ALGORITHM")
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 
-def create_token(id: str):
+def create_token(id: str, rol: str = "user"):
     access_token_expires = timedelta(minutes=30)
     expire = datetime.now() + access_token_expires
-    access_token = {"user_id": str(id), "expires": str(expire)}
+    access_token = {"user_id": str(id), "rol": rol, "expires": str(expire)}
     JWT = jwt.encode(access_token, SECRET_KEY, algorithm=ALGORITHM)
     return JWT
 
@@ -31,3 +31,14 @@ def validate_token(token: str):
     except JWTError:
         raise HTTPException(status_code=400, detail="Token inválido.", headers={
                             "WWW-Authenticate": "Bearer"})
+
+
+async def verify_rol(token: str):
+    payload = validate_token(token)
+    print(payload)
+    if payload["rol"] != "user":
+        raise HTTPException(
+            status_code=401,
+            detail="No tienes permisos para acceder a este recurso."
+        )
+    return True

@@ -15,6 +15,6 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido o caducado",
+            detail="Token inválido",
             headers={"WWW-Authenticate": "Bearer"},
         )

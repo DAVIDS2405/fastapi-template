@@ -38,15 +38,41 @@ async def Login(data):
         users.c.email == data.email)).first()
     if not users_db:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="No existen este correo registrado.")
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No existen este correo registrado."
+        )
 
     if not crypt.verify(data.password.get_secret_value(), users_db.password):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Contraseña incorrecta.")
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Contraseña incorrecta."
+        )
 
     user_db_data = users_db._asdict()
     user_db_data.update({"token": str(create_token(users_db.id))})
     user_db_data.update({"id": str(users_db.id)})
 
     raise HTTPException(
-        status_code=status.HTTP_202_ACCEPTED, detail=user_db_data)
+        status_code=status.HTTP_202_ACCEPTED,
+        detail=user_db_data
+    )
+
+
+async def Get_User_id(id):
+    users_db = conn.execute(users.select().where(
+        users.c.id == id)).first()
+    print(users_db)
+    if not users_db:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No existen este usuario."
+        )
+
+    user_db_data = users_db._asdict()
+    user_db_data.update({"id": str(users_db.id)})
+    user_db_data.pop("password")
+
+    raise HTTPException(
+        status_code=status.HTTP_202_ACCEPTED,
+        detail=user_db_data
+    )
