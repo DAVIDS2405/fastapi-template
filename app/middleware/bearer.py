@@ -7,14 +7,9 @@ security = HTTPBearer()
 
 
 async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    try:
-        token = credentials.credentials
-        payload = validate_token(token)
-        return payload
 
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    token = credentials.credentials
+
+    payload = validate_token(token)
+
+    return payload

@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
-from routes import user
+from routes import user, student, subject, enrollment
+
 
 app = FastAPI(
     docs_url="/api/v1/docs",
@@ -21,6 +22,9 @@ app.add_middleware(
 )
 
 app.include_router(user.router, prefix="/api/v1")
+app.include_router(student.router, prefix="/api/v1")
+app.include_router(subject.router, prefix="/api/v1")
+app.include_router(enrollment.router, prefix="/api/v1")
 
 
 @app.get("/", include_in_schema=False)
