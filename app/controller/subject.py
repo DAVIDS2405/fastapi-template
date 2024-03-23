@@ -1,3 +1,4 @@
+from helper.validator import is_valid_uuid
 from database.database_neon import conn
 from fastapi import HTTPException
 from fastapi import status
@@ -28,6 +29,12 @@ async def Get_All_Subjects():
 
 
 async def Get_Subject_id(id: str):
+
+    if not is_valid_uuid(id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Id inválido."
+        )
 
     subjects_db = conn.execute(subjects.select().where(
         subjects.c.id == id)).first()
@@ -68,11 +75,17 @@ async def Create_Subjects(data):
 
 async def Update_Subject(id: str, data):
 
+    if not is_valid_uuid(id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Id inválido."
+        )
+
     subjects_db = conn.execute(subjects.select().where(
         subjects.c.id == id)).first()
 
     name_subject = conn.execute(subjects.select().where(
-        subjects.c.name == data.name)).fetchall()
+        subjects.c.name == data.name)).first()
 
     if not subjects_db:
         raise HTTPException(
@@ -97,6 +110,13 @@ async def Update_Subject(id: str, data):
 
 
 async def Delete_Subject(id: str):
+
+    if not is_valid_uuid(id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Id inválido."
+        )
+
     subjects_db = conn.execute(subjects.select().where(
         subjects.c.id == id)).first()
 

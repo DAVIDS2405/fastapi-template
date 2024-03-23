@@ -1,29 +1,35 @@
 from fastapi import APIRouter
-
+from schemas.enrollment import EnrollmentCreate, EnrollmentUpdate
+from controller.enrollment import Get_All_Enrollments, Get_Enrollment_id, Create_Enrollments, Update_Enrollment, Delete_Enrollment
 
 router = APIRouter(tags=["Enrollment"])
 
 
 @router.get("/enrollment")
 async def get_enrollments():
-    return {"message": "Get Enrollment"}
+    response = await Get_All_Enrollments()
+    return response
 
 
 @router.get("/enrollment/{id}")
-async def get_enrollment_id(id: int):
-    return {"message": f"Get Enrollment {id}"}
+async def get_enrollment_id(id: str):
+    response = await Get_Enrollment_id(id)
+    return response
 
 
 @router.post("/enrollment")
-async def create_enrollments():
-    return {"message": "Post Enrollment"}
+async def create_enrollments(data: EnrollmentCreate):
+    response = await Create_Enrollments(data)
+    return response
 
 
-@router.put("/enrollment")
-async def update_enrollment():
-    return {"message": "Put Enrollment"}
+@router.put("/enrollment/{id}")
+async def update_enrollment(id: str, data: EnrollmentUpdate):
+    response = await Update_Enrollment(id, data)
+    return response
 
 
-@router.delete("/enrollment")
-async def delete_enrollment():
-    return {"message": "Delete Enrollment"}
+@router.delete("/enrollment/{id}")
+async def delete_enrollment(id: str):
+    response = await Delete_Enrollment(id)
+    return response

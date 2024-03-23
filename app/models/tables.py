@@ -21,6 +21,7 @@ students = Table(
     meta,
     Column("id", UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
     Column("name", Text),
+    Column("last_name", Text),
     Column("email", Text, unique=True),
     Column("age", Integer),
     Column("city", Text),
@@ -47,6 +48,7 @@ enrollments = Table(
     Column("id", UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
     Column("student_id", UUID(as_uuid=True), ForeignKey("students.id")),
     Column("subject_id", UUID(as_uuid=True), ForeignKey("subjects.id")),
+    Column("description", Text),
     Column("code", Integer),
 
 )

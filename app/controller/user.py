@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 from fastapi.templating import Jinja2Templates
-
+from helper.validator import is_valid_uuid
 from database.database_neon import conn
 from models.tables import users
 from helper.jwt import create_token
@@ -9,7 +9,6 @@ from config.smtp import send_email, send_email_reset_password
 from datetime import datetime
 import secrets
 import string
-
 templates = Jinja2Templates(directory="app/templates/")
 
 
@@ -189,6 +188,13 @@ async def Login(data):
 
 
 async def Get_User_id(id: str):
+
+    if not is_valid_uuid(id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Id inválido."
+        )
+
     users_db = conn.execute(users.select().where(
         users.c.id == id)).first()
 
@@ -211,6 +217,7 @@ async def Get_User_id(id: str):
 
 
 async def Get_Account_Whit_Id(id: str):
+
     users_db = conn.execute(users.select().where(
         users.c.id == id)).first()
 

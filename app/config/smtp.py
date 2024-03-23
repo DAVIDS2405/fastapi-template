@@ -38,7 +38,6 @@ def send_email(name, year, token):
         return True
     except Exception as e:
 
-        print(f"Error al enviar el correo electrónico: {e}")
         return False
 
 
@@ -69,5 +68,4 @@ def send_email_reset_password(name, year, id):
         return True
     except Exception as e:
 
-        print(f"Error al enviar el correo electrónico: {e}")
         return False
