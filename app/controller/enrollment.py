@@ -1,6 +1,7 @@
+from helper.response import create_enrollment_dict
 from helper.validator import is_valid_uuid
 from database.database_neon import conn
-from sqlalchemy import select, join
+from sqlalchemy import select
 from fastapi import status, HTTPException
 from models.tables import students, subjects, enrollments
 
@@ -18,23 +19,7 @@ async def Get_All_Enrollments():
         )
 
     for enrollment in enrollments_db:
-        enrollment_dict = {
-            "enrollment_id": str(enrollment.id),
-            "student": {
-                "id": str(enrollment.student),
-                "name": enrollment.name,
-                "last_name": enrollment.last_name,
-                "identification": enrollment.identification,
-            },
-            "subject": {
-                "id": str(enrollments_db.subject),
-                "name": enrollments_db.subject_name,
-                "code": enrollments_db.subject_code,
-                "credits": enrollment.credits
-            },
-            "enrollment_description": enrollment.description,
-            "enrollment_code": enrollment.code,
-        }
+        enrollment_dict = create_enrollment_dict(enrollment)
         enrollments_DB.append(enrollment_dict)
 
     raise HTTPException(status_code=status.HTTP_200_OK, detail=enrollments_DB)
@@ -48,7 +33,7 @@ async def Get_Enrollment_id(id: str):
             detail="Id inválido."
         )
 
-    enrollments_db = conn.execute(select(enrollments, students.c.id.label("student"), students.c.name, students.c.last_name, students.c.identification, subjects.c.id.label("subject"), subjects.c.name, subjects.c.code,
+    enrollments_db = conn.execute(select(enrollments, students.c.id.label("student"), students.c.name, students.c.last_name, students.c.identification, subjects.c.id.label("subject"), subjects.c.name.label("subject_name"), subjects.c.code.label("subject_code"),
                                   subjects.c.credits).select_from(students, enrollments, subjects).where(enrollments.c.student_id == students.c.id).where(enrollments.c.subject_id == subjects.c.id).where(enrollments.c.id == id)).first()
 
     if not enrollments_db:
@@ -57,23 +42,7 @@ async def Get_Enrollment_id(id: str):
             detail="No existen esta inscripción."
         )
 
-    enrollment_dict = {
-        "enrollment_id": str(enrollments_db.id),
-        "student": {
-            "id": str(enrollments_db.student),
-            "name": enrollments_db.name,
-            "last_name": enrollments_db.last_name,
-            "identification": enrollments_db.identification,
-        },
-        "subject": {
-            "id": str(enrollments_db.subject),
-            "name": enrollments_db.subject_name,
-            "code": enrollments_db.subject_code,
-            "credits": enrollments_db.credits
-        },
-        "enrollment_description": enrollments_db.description,
-        "enrollment_code": enrollments_db.code,
-    }
+    enrollment_dict = create_enrollment_dict(enrollments_db)
 
     raise HTTPException(status_code=status.HTTP_200_OK,
                         detail=enrollment_dict)
