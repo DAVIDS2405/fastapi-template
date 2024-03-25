@@ -1,15 +1,15 @@
 from helper.validator import is_valid_uuid
-from database.database_neon import conn
+from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from fastapi import status
-from models.tables import subjects, enrollments
+from models.tables import Subjects as subjects, Enrollments as enrollments
 
 
 async def Get_All_Subjects():
 
     subjects_DB = []
 
-    subjects_db = conn.execute(subjects.select()).fetchall()
+    subjects_db = Session.execute(subjects.select()).fetchall()
 
     if not subjects_db:
         raise HTTPException(
@@ -36,7 +36,7 @@ async def Get_Subject_id(id: str):
             detail="Id inválido."
         )
 
-    subjects_db = conn.execute(subjects.select().where(
+    subjects_db = Session.execute(subjects.select().where(
         subjects.c.id == id)).first()
 
     if not subjects_db:
@@ -55,7 +55,7 @@ async def Get_Subject_id(id: str):
 
 async def Create_Subjects(data):
 
-    subjects_db = conn.execute(subjects.select().where(
+    subjects_db = Session.execute(subjects.select().where(
         subjects.c.name == data.name)).fetchall()
 
     if subjects_db:
@@ -65,9 +65,9 @@ async def Create_Subjects(data):
         )
     data = data.dict()
 
-    conn.execute(subjects.insert().values(data))
+    Session.execute(subjects.insert().values(data))
 
-    conn.commit()
+    Session.commit()
 
     raise HTTPException(status_code=status.HTTP_201_CREATED,
                         detail="Materia creada correctamente.")
@@ -81,10 +81,10 @@ async def Update_Subject(id: str, data):
             detail="Id inválido."
         )
 
-    subjects_db = conn.execute(subjects.select().where(
+    subjects_db = Session.execute(subjects.select().where(
         subjects.c.id == id)).first()
 
-    name_subject = conn.execute(subjects.select().where(
+    name_subject = Session.execute(subjects.select().where(
         subjects.c.name == data.name)).first()
 
     if not subjects_db:
@@ -100,10 +100,10 @@ async def Update_Subject(id: str, data):
         )
     data = data.dict()
 
-    conn.execute(subjects.update().where(
+    Session.execute(subjects.update().where(
         subjects.c.id == id).values(data))
 
-    conn.commit()
+    Session.commit()
 
     raise HTTPException(status_code=status.HTTP_202_ACCEPTED,
                         detail="Materia actualizada correctamente.")
@@ -117,10 +117,10 @@ async def Delete_Subject(id: str):
             detail="Id inválido."
         )
 
-    subjects_db = conn.execute(subjects.select().where(
+    subjects_db = Session.execute(subjects.select().where(
         subjects.c.id == id)).first()
 
-    enrollments_db = conn.execute(enrollments.select().where(
+    enrollments_db = Session.execute(enrollments.select().where(
         enrollments.c.subject_id == id)).fetchone()
 
     if not subjects_db:
@@ -135,9 +135,9 @@ async def Delete_Subject(id: str):
             detail="No se puede eliminar la materia, ya que hay estudiantes inscritos."
         )
 
-    conn.execute(subjects.delete().where(subjects.c.id == id))
+    Session.execute(subjects.delete().where(subjects.c.id == id))
 
-    conn.commit()
+    Session.commit()
 
     raise HTTPException(status_code=status.HTTP_202_ACCEPTED,
                         detail="Materia eliminada correctamente.")

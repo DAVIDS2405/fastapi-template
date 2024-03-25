@@ -1,8 +1,8 @@
 from fastapi import HTTPException, status
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
 from helper.validator import is_valid_uuid
-from database.database_neon import conn
-from models.tables import users
+from models.tables import Users as users
 from helper.jwt import create_token
 from bcrypt import checkpw, hashpw, gensalt
 from config.smtp import send_email, send_email_reset_password
@@ -12,9 +12,8 @@ import string
 templates = Jinja2Templates(directory="app/templates/")
 
 
-async def Register_User(data):
-    users_db = conn.execute(users.select().where(
-        users.c.email == data.email)).first()
+async def Register_User(data, session: Session):
+    users_db = session.query(users).where(users.email == data.email).first()
 
     if users_db:
         raise HTTPException(
@@ -47,10 +46,10 @@ async def Register_User(data):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Algo fallo intenta de nuevo"
         )
+    new_user = users(**data)
+    session.add(new_user)
 
-    conn.execute(users.insert().values(data))
-
-    conn.commit()
+    session.commit()
 
     raise HTTPException(
         status_code=status.HTTP_201_CREATED,
@@ -58,26 +57,24 @@ async def Register_User(data):
     )
 
 
-async def Check_Mail(token: str, request):
-    users_db = conn.execute(users.select().where(
-        users.c.token == token)).first()
+async def Check_Mail(token: str, request, session: Session):
+    users_db = session.query(users).where(users.token == token).first()
 
     if not users_db:
         return templates.TemplateResponse(
             "400.html", {"request": request, "success": False}, status_code=status.HTTP_400_BAD_REQUEST)
 
-    conn.execute(users.update().where(users.c.token == token).values(
-        {"token": None, "email_verified": True}))
+    session.query(users).where(users.token == token).update(
+        {"token": None, "email_verified": True})
 
-    conn.commit()
+    session.commit()
 
     return templates.TemplateResponse(
         "email-verified.html", {"request": request, "success": True})
 
 
-async def Recover_Password(data):
-    users_db = conn.execute(users.select().where(
-        users.c.email == data.email)).first()
+async def Recover_Password(data, session: Session):
+    users_db = session.query(users).where(users.email == data.email).first()
 
     if not users_db:
         raise HTTPException(
@@ -91,9 +88,10 @@ async def Recover_Password(data):
             detail="Ya solicitaste un cambio de contraseña."
         )
 
-    conn.execute(users.update().where(users.c.email ==
-                 data.email).values({"email_verified": False}))
-    conn.commit()
+    session.query(users).where(users.email == data.email).update(
+        {"email_verified": False})
+
+    session.commit()
 
     year = datetime.now().year
     email = send_email_reset_password(users_db.name, year, str(users_db.id))
@@ -110,9 +108,8 @@ async def Recover_Password(data):
     )
 
 
-async def Update_Password(data):
-    users_db = conn.execute(users.select().where(
-        users.c.id == data.id)).first()
+async def Update_Password(data, session: Session):
+    users_db = session.query(users).where(users.id == data.id).first()
 
     if not users_db:
         raise HTTPException(
@@ -139,10 +136,10 @@ async def Update_Password(data):
 
     password = hashpw(password, salt)
 
-    conn.execute(users.update().where(users.c.id == data.id).values(
-        {"password": password.decode('utf-8'), "email_verified": True}))
+    session.query(users).where(users.id == data.id).update(
+        {"password": password.decode('utf-8'), "email_verified": True})
 
-    conn.commit()
+    session.commit()
 
     raise HTTPException(
         status_code=status.HTTP_202_ACCEPTED,
@@ -150,9 +147,8 @@ async def Update_Password(data):
     )
 
 
-async def Login(data):
-    users_db = conn.execute(users.select().where(
-        users.c.email == data.email)).first()
+async def Login(data, session: Session):
+    users_db = session.query(users).filter(users.email == data.email).first()
 
     if not users_db:
         raise HTTPException(
@@ -171,13 +167,15 @@ async def Login(data):
             detail="Contraseña incorrecta."
         )
 
-    user_db_data = users_db._asdict()
+    user_db_data = users_db.__dict__
 
     user_db_data.update({"token": str(create_token(users_db.id))})
 
     user_db_data.update({"id": str(users_db.id)})
 
     user_db_data.pop("password")
+
+    user_db_data.pop("_sa_instance_state")
 
     user_db_data.pop("email_verified")
 
@@ -187,7 +185,7 @@ async def Login(data):
     )
 
 
-async def Get_User_id(id: str):
+async def Get_User_id(id: str, session: Session):
 
     if not is_valid_uuid(id):
         raise HTTPException(
@@ -195,8 +193,7 @@ async def Get_User_id(id: str):
             detail="Id inválido."
         )
 
-    users_db = conn.execute(users.select().where(
-        users.c.id == id)).first()
+    users_db = session.query(users).where(users.id == id).first()
 
     if not users_db:
         raise HTTPException(
@@ -204,11 +201,17 @@ async def Get_User_id(id: str):
             detail="No existen este usuario."
         )
 
-    user_db_data = users_db._asdict()
+    user_db_data = users_db.__dict__
 
     user_db_data.update({"id": str(users_db.id)})
 
     user_db_data.pop("password")
+
+    user_db_data.pop("token")
+
+    user_db_data.pop("_sa_instance_state")
+
+    user_db_data.pop("email_verified")
 
     raise HTTPException(
         status_code=status.HTTP_202_ACCEPTED,
@@ -216,10 +219,9 @@ async def Get_User_id(id: str):
     )
 
 
-async def Get_Account_Whit_Id(id: str):
+async def Get_Account_Whit_Id(id: str, session: Session):
 
-    users_db = conn.execute(users.select().where(
-        users.c.id == id)).first()
+    users_db = session.query(users).where(users.id == id).first()
 
     if not users_db:
         raise HTTPException(
@@ -227,11 +229,17 @@ async def Get_Account_Whit_Id(id: str):
             detail="No existen este usuario."
         )
 
-    user_db_data = users_db._asdict()
+    user_db_data = users_db.__dict__
 
     user_db_data.update({"id": str(users_db.id)})
 
     user_db_data.pop("password")
+
+    user_db_data.pop("token")
+
+    user_db_data.pop("_sa_instance_state")
+
+    user_db_data.pop("email_verified")
 
     raise HTTPException(
         status_code=status.HTTP_202_ACCEPTED,
@@ -239,9 +247,8 @@ async def Get_Account_Whit_Id(id: str):
     )
 
 
-async def Delete_Account_Whit_Id(id: str):
-    users_db = conn.execute(users.select().where(
-        users.c.id == id)).first()
+async def Delete_Account_Whit_Id(id: str, session: Session):
+    users_db = session.query(users).where(users.id == id).first()
 
     if not users_db:
         raise HTTPException(
@@ -249,19 +256,18 @@ async def Delete_Account_Whit_Id(id: str):
             detail="No existen este usuario."
         )
 
-    conn.execute(users.delete().where(users.c.id == id))
+    session.query(users).where(users.id == id).delete()
 
-    conn.commit()
+    session.commit()
 
     raise HTTPException(
         status_code=status.HTTP_202_ACCEPTED,
         detail="Usuario eliminado correctamente.")
 
 
-async def Update_Account_Whit_Id(id: str, data):
+async def Update_Account_Whit_Id(id: str, data, session: Session):
 
-    users_db = conn.execute(users.select().where(
-        users.c.id == id)).first()
+    users_db = session.query(users).where(users.id == id).first()
 
     if not users_db:
         raise HTTPException(
@@ -270,9 +276,9 @@ async def Update_Account_Whit_Id(id: str, data):
         )
     data = data.dict()
 
-    conn.execute(users.update().where(users.c.id == id).values(data))
+    session.query(users).where(users.id == id).update(data)
 
-    conn.commit()
+    session.commit()
 
     raise HTTPException(
         status_code=status.HTTP_202_ACCEPTED,

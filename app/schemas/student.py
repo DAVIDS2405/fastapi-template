@@ -24,3 +24,13 @@ class StudentUpdate(BaseModel):
     address: str = Field(..., examples=["Street 124"])
     phone: str = Field(..., examples=["123456789"],
                        max_length=10, min_length=10)
+
+
+class StudentResponse(BaseModel):
+    id: str = Field(..., examples=["47740c3f-7cb5-48c3-912e-9ad4a24bac9d"])
+    name: str = Field(..., examples=["John"])
+    last_name: str = Field(..., examples=["Doe"])
+    email: EmailStr = Field(..., examples=["test@gmail.com"])
+
+    class Config:
+        from_attributes = True

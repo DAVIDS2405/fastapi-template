@@ -1,7 +1,11 @@
-from sqlalchemy import create_engine, MetaData, URL
+from sqlalchemy import create_engine, URL
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
 import os
 from dotenv import load_dotenv
 load_dotenv()
+
 username = os.environ.get('NEONDB_USER')
 password = os.environ.get('NEONDB_PASSWORD')
 host = os.environ.get('NEONDB_HOST')
@@ -15,9 +19,17 @@ connection_string = URL.create(
     database=database
 )
 
-meta = MetaData()
 engine = create_engine(
     connection_string,
     connect_args={'sslmode': 'require'}
 )
-conn = engine.connect()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
